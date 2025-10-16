@@ -1,0 +1,101 @@
+# Supabase local configuration
+#
+# NOTE: Run `supabase start` to start local Supabase stack
+# NOTE: Run `supabase init` if this file doesn't exist yet
+
+project_id = "jumun-local"
+
+[api]
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 17
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[realtime]
+enabled = true
+ip_version = "IPv4"
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[inbucket]
+enabled = true
+port = 54324
+smtp_port = 54325
+pop3_port = 54326
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:8080", "http://localhost:5000"]
+jwt_expiry = 3600
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+# Custom JWT claims hook (for role-based access control)
+# hook.custom_access_token.enabled = true
+# hook.custom_access_token.uri = "http://host.docker.internal:54321/functions/v1/jwt-hook"
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false  # Disable for local development
+max_frequency = "1h"
+
+[auth.sms]
+enable_signup = true
+enable_confirmations = true
+max_frequency = "1h"
+# For production, configure SMS provider
+# provider = "twilio"  # or messagebird
+# twilio_account_sid = ""
+# twilio_auth_token = ""
+# twilio_message_service_sid = ""
+
+# Password and rate limit settings are now managed through Supabase Dashboard
+# or environment variables in production
+
+# OAuth providers (configure with actual credentials for production)
+[auth.external.google]
+enabled = false
+# client_id = "env(GOOGLE_CLIENT_ID)"
+# secret = "env(GOOGLE_CLIENT_SECRET)"
+# redirect_uri = "http://localhost:54321/auth/v1/callback"
+
+[auth.external.kakao]
+enabled = false
+# client_id = "env(KAKAO_CLIENT_ID)"
+# secret = "env(KAKAO_CLIENT_SECRET)"
+# redirect_uri = "http://localhost:54321/auth/v1/callback"
+
+# Note: Naver requires custom provider setup
+# [auth.external.naver]
+# enabled = false
+# client_id = "env(NAVER_CLIENT_ID)"
+# secret = "env(NAVER_CLIENT_SECRET)"
+
+[auth.external.facebook]
+enabled = false
+# client_id = "env(FACEBOOK_CLIENT_ID)"
+# secret = "env(FACEBOOK_CLIENT_SECRET)"
+# redirect_uri = "http://localhost:54321/auth/v1/callback"
+
+[analytics]
+enabled = false
