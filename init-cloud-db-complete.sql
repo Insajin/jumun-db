@@ -1,6 +1,6 @@
 -- ==========================================================================
 -- Jumun Supabase Schema
--- Generated: 2025-10-18T23:15:26Z UTC
+-- Generated: 2025-10-18T23:57:22Z UTC
 -- Source: supabase/migrations (concatenated in timestamp order)
 -- Do not edit manually. Update migrations instead.
 -- ==========================================================================
