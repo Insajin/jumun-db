@@ -1,442 +1,309 @@
--- ============================================================================
--- Jumun - Complete Database Setup with Seed Data
--- ============================================================================
--- This script creates all tables and populates comprehensive test data
--- Suitable for Supabase Cloud SQL Editor
--- ============================================================================
+-- ==========================================================================
+-- Jumun Supabase Schema
+-- Generated: 2025-10-18T22:50:45Z UTC
+-- Source: supabase/migrations (concatenated in timestamp order)
+-- Do not edit manually. Update migrations instead.
+-- ==========================================================================
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET search_path = public, extensions;
+
+-- ==========================================================================
+-- Full sample data (seed/seed.sql)
+-- ==========================================================================
+-- Seed data for Jumun platform
+-- This creates test data for development and testing
+
+-- Clean up existing data (in reverse order of dependencies)
+TRUNCATE TABLE
+  notification_logs,
+  loyalty_transactions,
+  coupons,
+  promotions,
+  app_builds,
+  app_configs,
+  pickup_reservations,
+  pickup_slots,
+  refunds,
+  order_status_history,
+  orders,
+  inventory,
+  menu_modifiers,
+  menu_items,
+  menu_categories,
+  customers,
+  staff,
+  stores,
+  subscriptions,
+  brands
+CASCADE;
 
 -- ============================================================================
--- STEP 1: Enable Extensions
+-- BRANDS
 -- ============================================================================
 
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+INSERT INTO brands (id, name, slug) VALUES
+  ('11111111-1111-1111-1111-111111111111', 'Coffee & Co', 'coffee-and-co'),
+  ('22222222-2222-2222-2222-222222222222', 'Burger House', 'burger-house');
 
 -- ============================================================================
--- STEP 2: Create Enums
+-- SUBSCRIPTIONS
 -- ============================================================================
 
-DO $$ BEGIN CREATE TYPE subscription_plan AS ENUM ('trial', 'basic', 'professional', 'enterprise'); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TYPE subscription_status AS ENUM ('active', 'expired', 'cancelled', 'grace_period'); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TYPE store_status AS ENUM ('active', 'paused', 'offline', 'inactive'); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TYPE staff_role AS ENUM ('store_staff', 'store_manager', 'brand_admin', 'super_admin'); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TYPE build_platform AS ENUM ('ios', 'android'); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TYPE build_status AS ENUM ('in_progress', 'completed', 'failed'); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TYPE modifier_type AS ENUM ('single', 'multiple'); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TYPE order_status AS ENUM ('pending', 'waiting', 'preparing', 'ready', 'completed', 'cancelled', 'payment_issue'); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TYPE payment_method AS ENUM ('toss', 'kakaopay', 'naverpay', 'stripe', 'cash'); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TYPE payment_status AS ENUM ('pending', 'authorized', 'captured', 'failed', 'refunded', 'partially_refunded'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+INSERT INTO subscriptions (brand_id, plan, status, trial_ends_at, expires_at) VALUES
+  ('11111111-1111-1111-1111-111111111111', 'professional', 'active', NULL, NOW() + INTERVAL '1 year'),
+  ('22222222-2222-2222-2222-222222222222', 'trial', 'active', NOW() + INTERVAL '30 days', NOW() + INTERVAL '1 year');
 
 -- ============================================================================
--- STEP 3: Create Core Tables
+-- STORES
 -- ============================================================================
 
-CREATE TABLE IF NOT EXISTS brands (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name TEXT NOT NULL,
-    slug TEXT NOT NULL UNIQUE,
-    logo_url TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+INSERT INTO stores (id, brand_id, name, slug, address, lat, lng, timezone, phone, status, accepting_orders, operating_hours) VALUES
+  -- Coffee & Co stores
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', 'Coffee & Co Gangnam', 'gangnam', '서울시 강남구 테헤란로 123', 37.4979, 127.0276, 'Asia/Seoul', '02-1234-5678', 'active', TRUE,
+   '{"monday": {"open": "08:00", "close": "22:00"}, "tuesday": {"open": "08:00", "close": "22:00"}, "wednesday": {"open": "08:00", "close": "22:00"}, "thursday": {"open": "08:00", "close": "22:00"}, "friday": {"open": "08:00", "close": "23:00"}, "saturday": {"open": "09:00", "close": "23:00"}, "sunday": {"open": "09:00", "close": "21:00"}}'::jsonb),
 
-CREATE TABLE IF NOT EXISTS subscriptions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
-    plan subscription_plan NOT NULL DEFAULT 'trial',
-    status subscription_status NOT NULL DEFAULT 'active',
-    expires_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(brand_id)
-);
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '11111111-1111-1111-1111-111111111111', 'Coffee & Co Hongdae', 'hongdae', '서울시 마포구 홍익로 456', 37.5563, 126.9241, 'Asia/Seoul', '02-2345-6789', 'active', TRUE,
+   '{"monday": {"open": "08:00", "close": "22:00"}, "tuesday": {"open": "08:00", "close": "22:00"}, "wednesday": {"open": "08:00", "close": "22:00"}, "thursday": {"open": "08:00", "close": "22:00"}, "friday": {"open": "08:00", "close": "24:00"}, "saturday": {"open": "09:00", "close": "24:00"}, "sunday": {"open": "09:00", "close": "22:00"}}'::jsonb),
 
-CREATE TABLE IF NOT EXISTS stores (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    slug TEXT NOT NULL,
-    address TEXT,
-    lat DOUBLE PRECISION,
-    lng DOUBLE PRECISION,
-    phone TEXT,
-    status store_status NOT NULL DEFAULT 'active',
-    accepting_orders BOOLEAN NOT NULL DEFAULT TRUE,
-    operating_hours JSONB NOT NULL DEFAULT '{}',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(brand_id, slug)
-);
-
-CREATE TABLE IF NOT EXISTS customers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    phone TEXT,
-    full_name TEXT,
-    loyalty_points INTEGER NOT NULL DEFAULT 0,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS app_configs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
-    app_name TEXT NOT NULL,
-    logo_url TEXT,
-    primary_color TEXT NOT NULL DEFAULT '#6366F1',
-    feature_toggles JSONB NOT NULL DEFAULT '{}',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(brand_id)
-);
+  -- Burger House stores
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', '22222222-2222-2222-2222-222222222222', 'Burger House Itaewon', 'itaewon', '서울시 용산구 이태원로 789', 37.5340, 126.9946, 'Asia/Seoul', '02-3456-7890', 'active', TRUE,
+   '{"monday": {"open": "11:00", "close": "23:00"}, "tuesday": {"open": "11:00", "close": "23:00"}, "wednesday": {"open": "11:00", "close": "23:00"}, "thursday": {"open": "11:00", "close": "23:00"}, "friday": {"open": "11:00", "close": "24:00"}, "saturday": {"open": "11:00", "close": "24:00"}, "sunday": {"open": "11:00", "close": "23:00"}}'::jsonb);
 
 -- ============================================================================
--- STEP 4: Create Menu Tables
+-- STAFF (Note: user_id references auth.users - these should be created via Supabase Auth)
 -- ============================================================================
 
-CREATE TABLE IF NOT EXISTS menu_categories (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    description TEXT,
-    display_order INTEGER NOT NULL DEFAULT 0,
-    image_url TEXT,
-    available BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+-- For development, we'll use placeholder UUIDs
+-- In production, these should be actual auth.users IDs
 
-CREATE TABLE IF NOT EXISTS menu_items (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
-    category_id UUID REFERENCES menu_categories(id) ON DELETE SET NULL,
-    name TEXT NOT NULL,
-    description TEXT,
-    price DECIMAL(10,2) NOT NULL,
-    image_url TEXT,
-    available BOOLEAN NOT NULL DEFAULT TRUE,
-    display_order INTEGER NOT NULL DEFAULT 0,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT menu_items_price_positive CHECK (price >= 0)
-);
+INSERT INTO staff (store_id, user_id, role, permissions) VALUES
+  -- Coffee & Co Gangnam staff
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'a1111111-1111-1111-1111-111111111111', 'store_manager', '{"can_manage_inventory": true, "can_refund": true, "can_manage_staff": true}'::jsonb),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'a2222222-2222-2222-2222-222222222222', 'store_staff', '{"can_manage_inventory": true, "can_refund": false}'::jsonb),
 
-CREATE TABLE IF NOT EXISTS menu_modifiers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    item_id UUID NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    type modifier_type NOT NULL DEFAULT 'single',
-    required BOOLEAN NOT NULL DEFAULT FALSE,
-    options JSONB NOT NULL DEFAULT '[]',
-    display_order INTEGER NOT NULL DEFAULT 0
-);
+  -- Coffee & Co Hongdae staff
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'b1111111-1111-1111-1111-111111111111', 'store_manager', '{"can_manage_inventory": true, "can_refund": true, "can_manage_staff": true}'::jsonb),
 
-CREATE TABLE IF NOT EXISTS inventory (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
-    item_id UUID NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
-    quantity INTEGER NOT NULL DEFAULT 0,
-    UNIQUE(store_id, item_id)
-);
+  -- Burger House Itaewon staff
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'c1111111-1111-1111-1111-111111111111', 'store_manager', '{"can_manage_inventory": true, "can_refund": true, "can_manage_staff": true}'::jsonb);
 
 -- ============================================================================
--- STEP 5: Create Order Tables
+-- CUSTOMERS
 -- ============================================================================
 
-CREATE TABLE IF NOT EXISTS orders (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
-    store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
-    customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-    items JSONB NOT NULL DEFAULT '[]',
-    subtotal DECIMAL(10,2) NOT NULL,
-    tax DECIMAL(10,2) NOT NULL DEFAULT 0,
-    total DECIMAL(10,2) NOT NULL,
-    pickup_window_start TIMESTAMPTZ NOT NULL,
-    pickup_window_end TIMESTAMPTZ NOT NULL,
-    status order_status NOT NULL DEFAULT 'pending',
-    payment_method payment_method,
-    payment_status payment_status NOT NULL DEFAULT 'pending',
-    customer_name TEXT,
-    customer_phone TEXT,
-    notes TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS order_status_history (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-    from_status order_status,
-    to_status order_status NOT NULL,
-    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+INSERT INTO customers (id, brand_id, user_id, phone, phone_verified_at, loyalty_points, preferences) VALUES
+  ('d1111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'd1111111-1111-1111-1111-111111111111', '+821012345678', NOW(), 100, '{"notifications": {"push": true, "sms": true}, "language": "ko"}'::jsonb),
+  ('d2222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222', 'd2222222-2222-2222-2222-222222222222', '+821098765432', NOW(), 50, '{"notifications": {"push": true, "sms": false}, "language": "ko"}'::jsonb);
 
 -- ============================================================================
--- STEP 6: Create Indexes
+-- MENU CATEGORIES (Coffee & Co)
 -- ============================================================================
 
-CREATE INDEX IF NOT EXISTS idx_brands_slug ON brands(slug);
-CREATE INDEX IF NOT EXISTS idx_stores_brand_id ON stores(brand_id);
-CREATE INDEX IF NOT EXISTS idx_menu_categories_brand_id ON menu_categories(brand_id);
-CREATE INDEX IF NOT EXISTS idx_menu_items_brand_id ON menu_items(brand_id);
-CREATE INDEX IF NOT EXISTS idx_menu_items_category_id ON menu_items(category_id);
-CREATE INDEX IF NOT EXISTS idx_orders_store_id ON orders(store_id);
-CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders(customer_id);
-CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+INSERT INTO menu_categories (id, brand_id, store_id, parent_id, name, description, display_order, available) VALUES
+  -- Brand-level categories
+  ('e1111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', NULL, NULL, 'Coffee', 'Hot and cold coffee drinks', 1, TRUE),
+  ('e2222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', NULL, NULL, 'Non-Coffee', 'Tea, juice, and other beverages', 2, TRUE),
+  ('e3333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', NULL, NULL, 'Desserts', 'Cakes, cookies, and pastries', 3, TRUE),
+
+  -- Subcategories
+  ('e4444444-4444-4444-4444-444444444444', '11111111-1111-1111-1111-111111111111', NULL, 'e1111111-1111-1111-1111-111111111111', 'Espresso', 'Espresso-based drinks', 1, TRUE),
+  ('e5555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111', NULL, 'e1111111-1111-1111-1111-111111111111', 'Brewed', 'Drip and cold brew', 2, TRUE);
 
 -- ============================================================================
--- STEP 7: Enable RLS with Public Access
+-- MENU CATEGORIES (Burger House)
 -- ============================================================================
 
-ALTER TABLE brands ENABLE ROW LEVEL SECURITY;
-ALTER TABLE stores ENABLE ROW LEVEL SECURITY;
-ALTER TABLE app_configs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE menu_categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE menu_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE menu_modifiers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
-
--- Drop existing policies
-DROP POLICY IF EXISTS "Public read brands" ON brands;
-DROP POLICY IF EXISTS "Public read stores" ON stores;
-DROP POLICY IF EXISTS "Public read app_configs" ON app_configs;
-DROP POLICY IF EXISTS "Public read menu_categories" ON menu_categories;
-DROP POLICY IF EXISTS "Public read menu_items" ON menu_items;
-DROP POLICY IF EXISTS "Public read menu_modifiers" ON menu_modifiers;
-
--- Public read access (for mobile apps)
-CREATE POLICY "Public read brands" ON brands FOR SELECT TO public USING (true);
-CREATE POLICY "Public read stores" ON stores FOR SELECT TO public USING (status = 'active');
-CREATE POLICY "Public read app_configs" ON app_configs FOR SELECT TO public USING (true);
-CREATE POLICY "Public read menu_categories" ON menu_categories FOR SELECT TO public USING (available = true);
-CREATE POLICY "Public read menu_items" ON menu_items FOR SELECT TO public USING (available = true);
-CREATE POLICY "Public read menu_modifiers" ON menu_modifiers FOR SELECT TO public USING (true);
+INSERT INTO menu_categories (id, brand_id, store_id, parent_id, name, description, display_order, available) VALUES
+  ('f1111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', NULL, NULL, 'Burgers', 'Our signature burgers', 1, TRUE),
+  ('f2222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222', NULL, NULL, 'Sides', 'Fries, onion rings, and more', 2, TRUE),
+  ('f3333333-3333-3333-3333-333333333333', '22222222-2222-2222-2222-222222222222', NULL, NULL, 'Drinks', 'Soft drinks and shakes', 3, TRUE);
 
 -- ============================================================================
--- STEP 7.5: Clean up existing seed data
+-- MENU ITEMS (Coffee & Co)
 -- ============================================================================
 
--- Delete existing test brands and all related data (CASCADE)
-DELETE FROM brands
-WHERE slug IN ('jumun', 'starbucks', 'twosome', 'mega-coffee');
+INSERT INTO menu_items (id, brand_id, store_id, category_id, name, description, price, available, inventory_tracked, display_order) VALUES
+  -- Espresso drinks
+  ('a1111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', NULL, 'e4444444-4444-4444-4444-444444444444', 'Americano', 'Classic espresso with hot water', 4.50, TRUE, FALSE, 1),
+  ('a2222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', NULL, 'e4444444-4444-4444-4444-444444444444', 'Latte', 'Espresso with steamed milk', 5.00, TRUE, FALSE, 2),
+  ('a3333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', NULL, 'e4444444-4444-4444-4444-444444444444', 'Cappuccino', 'Espresso with foamed milk', 5.00, TRUE, FALSE, 3),
+
+  -- Brewed coffee
+  ('a4444444-4444-4444-4444-444444444444', '11111111-1111-1111-1111-111111111111', NULL, 'e5555555-5555-5555-5555-555555555555', 'Drip Coffee', 'Fresh brewed daily', 3.50, TRUE, FALSE, 1),
+  ('a5555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111', NULL, 'e5555555-5555-5555-5555-555555555555', 'Cold Brew', 'Smooth cold brew coffee', 5.50, TRUE, FALSE, 2),
+
+  -- Desserts
+  ('a6666666-6666-6666-6666-666666666666', '11111111-1111-1111-1111-111111111111', NULL, 'e3333333-3333-3333-3333-333333333333', 'Chocolate Cake', 'Rich chocolate layer cake', 6.00, TRUE, TRUE, 1),
+  ('a7777777-7777-7777-7777-777777777777', '11111111-1111-1111-1111-111111111111', NULL, 'e3333333-3333-3333-3333-333333333333', 'Croissant', 'Buttery French croissant', 3.50, TRUE, TRUE, 2);
 
 -- ============================================================================
--- STEP 8: Insert Seed Data - Brands
+-- MENU ITEMS (Burger House)
 -- ============================================================================
 
-INSERT INTO brands (id, name, slug, logo_url) VALUES
-    ('00000000-0000-0000-0000-000000000001', 'Jumun', 'jumun', NULL),
-    ('00000000-0000-0000-0000-000000000002', '스타벅스', 'starbucks', 'https://upload.wikimedia.org/wikipedia/en/thumb/d/d3/Starbucks_Corporation_Logo_2011.svg/200px-Starbucks_Corporation_Logo_2011.svg.png'),
-    ('00000000-0000-0000-0000-000000000003', '투썸플레이스', 'twosome', NULL),
-    ('00000000-0000-0000-0000-000000000004', '메가커피', 'mega-coffee', NULL)
-ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, logo_url = EXCLUDED.logo_url;
+INSERT INTO menu_items (id, brand_id, store_id, category_id, name, description, price, available, inventory_tracked, display_order) VALUES
+  -- Burgers
+  ('b1111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', NULL, 'f1111111-1111-1111-1111-111111111111', 'Classic Burger', '100% beef patty with lettuce, tomato, onion', 9.99, TRUE, FALSE, 1),
+  ('b2222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222', NULL, 'f1111111-1111-1111-1111-111111111111', 'Cheese Burger', 'Classic burger with cheddar cheese', 10.99, TRUE, FALSE, 2),
+  ('b3333333-3333-3333-3333-333333333333', '22222222-2222-2222-2222-222222222222', NULL, 'f1111111-1111-1111-1111-111111111111', 'Bacon Burger', 'Topped with crispy bacon', 11.99, TRUE, FALSE, 3),
+
+  -- Sides
+  ('b4444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222', NULL, 'f2222222-2222-2222-2222-222222222222', 'French Fries', 'Crispy golden fries', 3.99, TRUE, FALSE, 1),
+  ('b5555555-5555-5555-5555-555555555555', '22222222-2222-2222-2222-222222222222', NULL, 'f2222222-2222-2222-2222-222222222222', 'Onion Rings', 'Beer-battered onion rings', 4.99, TRUE, FALSE, 2);
 
 -- ============================================================================
--- STEP 9: Insert Seed Data - Subscriptions
+-- MENU MODIFIERS
 -- ============================================================================
 
-INSERT INTO subscriptions (brand_id, plan, status, expires_at) VALUES
-    ('00000000-0000-0000-0000-000000000001', 'enterprise', 'active', NOW() + INTERVAL '1 year'),
-    ('00000000-0000-0000-0000-000000000002', 'professional', 'active', NOW() + INTERVAL '1 year'),
-    ('00000000-0000-0000-0000-000000000003', 'basic', 'active', NOW() + INTERVAL '6 months'),
-    ('00000000-0000-0000-0000-000000000004', 'trial', 'active', NOW() + INTERVAL '30 days')
-ON CONFLICT (brand_id) DO UPDATE SET plan = EXCLUDED.plan, status = EXCLUDED.status;
+-- Coffee size modifier
+INSERT INTO menu_modifiers (item_id, name, type, required, min_selections, max_selections, options, display_order) VALUES
+  ('a1111111-1111-1111-1111-111111111111', 'Size', 'single', TRUE, 1, 1,
+   '[{"name": "Tall (12oz)", "price": 0}, {"name": "Grande (16oz)", "price": 0.50}, {"name": "Venti (20oz)", "price": 1.00}]'::jsonb, 1),
+  ('a2222222-2222-2222-2222-222222222222', 'Size', 'single', TRUE, 1, 1,
+   '[{"name": "Tall (12oz)", "price": 0}, {"name": "Grande (16oz)", "price": 0.50}, {"name": "Venti (20oz)", "price": 1.00}]'::jsonb, 1);
+
+-- Coffee extras
+INSERT INTO menu_modifiers (item_id, name, type, required, min_selections, max_selections, options, display_order) VALUES
+  ('a2222222-2222-2222-2222-222222222222', 'Extras', 'multiple', FALSE, 0, 3,
+   '[{"name": "Extra Shot", "price": 0.75}, {"name": "Whipped Cream", "price": 0.50}, {"name": "Caramel Drizzle", "price": 0.50}]'::jsonb, 2);
+
+-- Burger extras
+INSERT INTO menu_modifiers (item_id, name, type, required, min_selections, max_selections, options, display_order) VALUES
+  ('b1111111-1111-1111-1111-111111111111', 'Add-ons', 'multiple', FALSE, 0, 5,
+   '[{"name": "Extra Cheese", "price": 1.00}, {"name": "Bacon", "price": 1.50}, {"name": "Avocado", "price": 1.50}, {"name": "Egg", "price": 1.00}]'::jsonb, 1);
 
 -- ============================================================================
--- STEP 10: Insert Seed Data - App Configs
+-- INVENTORY
 -- ============================================================================
 
-INSERT INTO app_configs (brand_id, app_name, primary_color, feature_toggles) VALUES
-    ('00000000-0000-0000-0000-000000000001', 'Jumun', '#6366F1', '{"loyalty": true, "promotions": true, "qr_ordering": true}'::jsonb),
-    ('00000000-0000-0000-0000-000000000002', '스타벅스', '#00704A', '{"loyalty": true, "promotions": true, "qr_ordering": true}'::jsonb),
-    ('00000000-0000-0000-0000-000000000003', '투썸플레이스', '#E94B3C', '{"loyalty": true, "promotions": false, "qr_ordering": true}'::jsonb),
-    ('00000000-0000-0000-0000-000000000004', '메가커피', '#FFB81C', '{"loyalty": false, "promotions": true, "qr_ordering": true}'::jsonb)
-ON CONFLICT (brand_id) DO UPDATE SET app_name = EXCLUDED.app_name, primary_color = EXCLUDED.primary_color;
+INSERT INTO inventory (store_id, item_id, quantity, low_stock_threshold) VALUES
+  -- Coffee & Co Gangnam desserts
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'a6666666-6666-6666-6666-666666666666', 10, 3),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'a7777777-7777-7777-7777-777777777777', 15, 5),
+
+  -- Coffee & Co Hongdae desserts
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'a6666666-6666-6666-6666-666666666666', 8, 3),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'a7777777-7777-7777-7777-777777777777', 12, 5);
 
 -- ============================================================================
--- STEP 11: Insert Seed Data - Stores
+-- PICKUP SLOTS
 -- ============================================================================
 
-INSERT INTO stores (id, brand_id, name, slug, address, lat, lng, phone, status) VALUES
-    -- Jumun 테스트 매장
-    ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Jumun 테스트 매장', 'test-store', '서울시 강남구 테헤란로 123', 37.5012, 127.0396, '02-1234-5678', 'active'),
+-- Coffee & Co stores (every day, 30 min slots, 20 min lead time, 5 orders per slot)
+INSERT INTO pickup_slots (store_id, day_of_week, slot_duration_minutes, lead_time_minutes, capacity_per_slot) VALUES
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 0, 30, 20, 5), -- Sunday
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 1, 30, 20, 5), -- Monday
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 2, 30, 20, 5), -- Tuesday
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 3, 30, 20, 5), -- Wednesday
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 4, 30, 20, 5), -- Thursday
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 5, 30, 20, 5), -- Friday
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 6, 30, 20, 5), -- Saturday
 
-    -- 스타벅스 매장
-    ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002', '스타벅스 강남점', 'gangnam', '서울시 강남구 강남대로 396', 37.4979, 127.0276, '02-2000-0001', 'active'),
-    ('10000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000002', '스타벅스 홍대점', 'hongdae', '서울시 마포구 양화로 160', 37.5563, 126.9236, '02-2000-0002', 'active'),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 0, 30, 20, 5),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 1, 30, 20, 5),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 2, 30, 20, 5),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 3, 30, 20, 5),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 4, 30, 20, 5),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 5, 30, 20, 5),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 6, 30, 20, 5);
 
-    -- 투썸플레이스 매장
-    ('10000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000003', '투썸플레이스 역삼점', 'yeoksam', '서울시 강남구 역삼로 123', 37.5001, 127.0364, '02-3000-0001', 'active'),
-
-    -- 메가커피 매장
-    ('10000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000004', '메가커피 신촌점', 'sinchon', '서울시 서대문구 신촌로 50', 37.5591, 126.9425, '02-4000-0001', 'active')
-ON CONFLICT (brand_id, slug) DO UPDATE SET name = EXCLUDED.name, address = EXCLUDED.address;
-
--- ============================================================================
--- STEP 12: Insert Seed Data - Menu Categories
--- ============================================================================
-
--- 스타벅스 카테고리
-INSERT INTO menu_categories (id, brand_id, name, description, display_order) VALUES
-    ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '커피', '에스프레소 음료', 1),
-    ('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002', '논커피', '커피가 들어가지 않은 음료', 2),
-    ('20000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000002', '푸드', '케이크 & 샌드위치', 3),
-
-    -- 투썸플레이스 카테고리
-    ('20000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000003', '커피', '시그니처 커피', 1),
-    ('20000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000003', '케이크', '투썸 시그니처 케이크', 2),
-
-    -- 메가커피 카테고리
-    ('20000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000004', '커피', '메가 커피 메뉴', 1),
-    ('20000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000004', '에이드', '상큼한 에이드', 2)
-ON CONFLICT DO NOTHING;
+-- Burger House (15 min slots, 15 min lead time, 8 orders per slot)
+INSERT INTO pickup_slots (store_id, day_of_week, slot_duration_minutes, lead_time_minutes, capacity_per_slot) VALUES
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 0, 15, 15, 8),
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 1, 15, 15, 8),
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 2, 15, 15, 8),
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 3, 15, 15, 8),
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 4, 15, 15, 8),
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 5, 15, 15, 8),
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 6, 15, 15, 8);
 
 -- ============================================================================
--- STEP 13: Insert Seed Data - Menu Items
+-- APP CONFIGS
 -- ============================================================================
 
--- 스타벅스 메뉴
-INSERT INTO menu_items (id, brand_id, category_id, name, description, price, display_order) VALUES
-    -- 커피
-    ('30000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', '아메리카노', '에스프레소에 물을 더한 커피', 4500, 1),
-    ('30000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', '카페 라떼', '에스프레소와 스팀 우유', 5000, 2),
-    ('30000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', '카푸치노', '풍부한 우유 거품', 5000, 3),
-    ('30000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', '카라멜 마키아또', '카라멜 시럽과 에스프레소', 6000, 4),
+INSERT INTO app_configs (brand_id, app_name, primary_color, feature_toggles, build_version) VALUES
+  ('11111111-1111-1111-1111-111111111111', 'Coffee & Co', '#8B4513',
+   '{"loyalty": true, "promotions": true, "multi_language": true}'::jsonb, '1.0.0'),
 
-    -- 논커피
-    ('30000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002', '자몽 허니 블랙 티', '상큼한 자몽과 홍차', 5500, 1),
-    ('30000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002', '딸기 요거트 블렌디드', '딸기와 요거트', 6500, 2),
-
-    -- 푸드
-    ('30000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000003', '뉴욕 치즈케이크', '부드러운 치즈케이크', 7000, 1),
-    ('30000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000003', 'BLT 샌드위치', '베이컨 레터스 토마토', 6500, 2),
-
-    -- 투썸플레이스 메뉴
-    ('30000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000004', '아메리카노', '클래식 아메리카노', 4000, 1),
-    ('30000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000004', '카페 라떼', '부드러운 카페 라떼', 4500, 2),
-    ('30000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000005', '티라미수 케이크', '시그니처 티라미수', 7500, 1),
-    ('30000000-0000-0000-0000-000000000012', '00000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000005', '초코 생크림 케이크', '진한 초콜릿 케이크', 8000, 2),
-
-    -- 메가커피 메뉴
-    ('30000000-0000-0000-0000-000000000013', '00000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000006', '메가 아메리카노', '가성비 아메리카노', 2000, 1),
-    ('30000000-0000-0000-0000-000000000014', '00000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000006', '메가 라떼', '가성비 카페 라떼', 2500, 2),
-    ('30000000-0000-0000-0000-000000000015', '00000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000007', '레몬 에이드', '상큼한 레몬 에이드', 3000, 1),
-    ('30000000-0000-0000-0000-000000000016', '00000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000007', '자몽 에이드', '새콤달콤 자몽 에이드', 3500, 2)
-ON CONFLICT DO NOTHING;
+  ('22222222-2222-2222-2222-222222222222', 'Burger House', '#DC2626',
+   '{"loyalty": true, "promotions": true, "multi_language": false}'::jsonb, '1.0.0');
 
 -- ============================================================================
--- STEP 14: Insert Seed Data - Menu Modifiers
+-- PROMOTIONS
 -- ============================================================================
 
--- 커피 사이즈 옵션 (스타벅스)
-INSERT INTO menu_modifiers (item_id, name, type, required, options, display_order) VALUES
-    ('30000000-0000-0000-0000-000000000001', '사이즈', 'single', true,
-     '[{"name": "Tall", "price": 0}, {"name": "Grande", "price": 500}, {"name": "Venti", "price": 1000}]'::jsonb, 1),
-    ('30000000-0000-0000-0000-000000000002', '사이즈', 'single', true,
-     '[{"name": "Tall", "price": 0}, {"name": "Grande", "price": 500}, {"name": "Venti", "price": 1000}]'::jsonb, 1),
+INSERT INTO promotions (brand_id, store_ids, name, description, type, discount_value, conditions, valid_from, valid_to, active) VALUES
+  ('11111111-1111-1111-1111-111111111111', '{}', 'Happy Hour', '20% off all drinks 2-4pm', 'percentage_discount', 20,
+   '{"time_range": {"start": "14:00", "end": "16:00"}}'::jsonb,
+   NOW() - INTERVAL '1 day', NOW() + INTERVAL '30 days', TRUE),
 
-    -- 온도 옵션
-    ('30000000-0000-0000-0000-000000000001', '온도', 'single', true,
-     '[{"name": "HOT", "price": 0}, {"name": "ICE", "price": 0}]'::jsonb, 2),
-    ('30000000-0000-0000-0000-000000000002', '온도', 'single', true,
-     '[{"name": "HOT", "price": 0}, {"name": "ICE", "price": 0}]'::jsonb, 2),
-
-    -- 추가 옵션
-    ('30000000-0000-0000-0000-000000000002', '추가 옵션', 'multiple', false,
-     '[{"name": "샷 추가", "price": 500}, {"name": "휘핑크림", "price": 500}, {"name": "시럽 추가", "price": 500}]'::jsonb, 3)
-ON CONFLICT DO NOTHING;
+  ('22222222-2222-2222-2222-222222222222', '{}', 'Free Fries Friday', 'Free fries with any burger on Fridays', 'buy_x_get_y', 0,
+   '{"day_of_week": 5, "buy_items": ["burger"], "get_items": ["fries"]}'::jsonb,
+   NOW() - INTERVAL '1 day', NOW() + INTERVAL '90 days', TRUE);
 
 -- ============================================================================
--- STEP 15: Insert Seed Data - Customers
+-- COUPONS
 -- ============================================================================
 
-INSERT INTO customers (id, phone, full_name, loyalty_points) VALUES
-    ('40000000-0000-0000-0000-000000000001', '010-1234-5678', '김테스트', 1000),
-    ('40000000-0000-0000-0000-000000000002', '010-9876-5432', '이고객', 500),
-    ('40000000-0000-0000-0000-000000000003', '010-5555-6666', '박주문', 2500)
-ON CONFLICT DO NOTHING;
+INSERT INTO coupons (brand_id, customer_id, code, type, value, min_order_value, expires_at) VALUES
+  ('11111111-1111-1111-1111-111111111111', 'd1111111-1111-1111-1111-111111111111', 'WELCOME10', 'percentage', 10, 10.00, NOW() + INTERVAL '30 days'),
+  ('11111111-1111-1111-1111-111111111111', 'd2222222-2222-2222-2222-222222222222', 'COFFEE5', 'fixed_amount', 5, 15.00, NOW() + INTERVAL '30 days'),
+  ('22222222-2222-2222-2222-222222222222', NULL, 'BURGER2024', 'fixed_amount', 3, 20.00, NOW() + INTERVAL '60 days'); -- Public coupon
 
 -- ============================================================================
--- STEP 16: Insert Seed Data - Sample Orders
+-- SAMPLE ORDERS (for testing)
 -- ============================================================================
 
--- 완료된 주문 예시
 INSERT INTO orders (
-    id, brand_id, store_id, customer_id,
-    items, subtotal, tax, total,
-    pickup_window_start, pickup_window_end,
-    status, payment_method, payment_status,
-    customer_name, customer_phone
+  id, brand_id, store_id, customer_id, items, subtotal, tax, total,
+  pickup_window_start, pickup_window_end, status, payment_method, payment_status,
+  customer_name, customer_phone, guest_token
 ) VALUES
-    (
-        '50000000-0000-0000-0000-000000000001',
-        '00000000-0000-0000-0000-000000000002',  -- 스타벅스
-        '10000000-0000-0000-0000-000000000002',  -- 강남점
-        '40000000-0000-0000-0000-000000000001',  -- 김테스트
-        '[{
-            "item_id": "30000000-0000-0000-0000-000000000001",
-            "name": "아메리카노",
-            "quantity": 2,
-            "price": 4500,
-            "modifiers": [
-                {"name": "사이즈", "option": "Grande", "price": 500},
-                {"name": "온도", "option": "ICE", "price": 0}
-            ]
-        }]'::jsonb,
-        10000, 1000, 11000,
-        NOW() - INTERVAL '1 hour', NOW() - INTERVAL '30 minutes',
-        'completed', 'toss', 'captured',
-        '김테스트', '010-1234-5678'
-    ),
+  -- Completed order
+  ('c1111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111',
+   'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'd1111111-1111-1111-1111-111111111111',
+   '[{"item_id": "a2222222-2222-2222-2222-222222222222", "name": "Latte", "quantity": 2, "price": 5.00, "modifiers": [{"name": "Size", "option": "Grande (16oz)", "price": 0.50}]}]'::jsonb,
+   11.00, 1.10, 12.10,
+   NOW() - INTERVAL '2 hours', NOW() - INTERVAL '1 hour 30 minutes',
+   'completed', 'toss', 'captured',
+   '김철수', '+821012345678', NULL),
 
-    -- 진행 중인 주문 예시
-    (
-        '50000000-0000-0000-0000-000000000002',
-        '00000000-0000-0000-0000-000000000002',  -- 스타벅스
-        '10000000-0000-0000-0000-000000000002',  -- 강남점
-        '40000000-0000-0000-0000-000000000002',  -- 이고객
-        '[{
-            "item_id": "30000000-0000-0000-0000-000000000002",
-            "name": "카페 라떼",
-            "quantity": 1,
-            "price": 5000,
-            "modifiers": [
-                {"name": "사이즈", "option": "Tall", "price": 0},
-                {"name": "온도", "option": "HOT", "price": 0}
-            ]
-        }, {
-            "item_id": "30000000-0000-0000-0000-000000000007",
-            "name": "뉴욕 치즈케이크",
-            "quantity": 1,
-            "price": 7000,
-            "modifiers": []
-        }]'::jsonb,
-        12000, 1200, 13200,
-        NOW() + INTERVAL '15 minutes', NOW() + INTERVAL '30 minutes',
-        'preparing', 'kakaopay', 'captured',
-        '이고객', '010-9876-5432'
-    )
-ON CONFLICT DO NOTHING;
+  -- Active order (waiting)
+  ('c2222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222',
+   'cccccccc-cccc-cccc-cccc-cccccccccccc', NULL,
+   '[{"item_id": "b1111111-1111-1111-1111-111111111111", "name": "Classic Burger", "quantity": 1, "price": 9.99}, {"item_id": "b4444444-4444-4444-4444-444444444444", "name": "French Fries", "quantity": 1, "price": 3.99}]'::jsonb,
+   13.98, 1.40, 15.38,
+   NOW() + INTERVAL '30 minutes', NOW() + INTERVAL '1 hour',
+   'waiting', 'kakaopay', 'captured',
+   '이영희', '+821098765432', 'seed-guest-token');
 
 -- ============================================================================
--- STEP 17: Verification Query
+-- SUMMARY
 -- ============================================================================
 
-SELECT
-    'Summary' as section,
-    'Brands' as item,
-    count(*)::text as count
-FROM brands
-UNION ALL
-SELECT 'Summary', 'Stores', count(*)::text FROM stores
-UNION ALL
-SELECT 'Summary', 'App Configs', count(*)::text FROM app_configs
-UNION ALL
-SELECT 'Summary', 'Menu Categories', count(*)::text FROM menu_categories
-UNION ALL
-SELECT 'Summary', 'Menu Items', count(*)::text FROM menu_items
-UNION ALL
-SELECT 'Summary', 'Menu Modifiers', count(*)::text FROM menu_modifiers
-UNION ALL
-SELECT 'Summary', 'Customers', count(*)::text FROM customers
-UNION ALL
-SELECT 'Summary', 'Orders', count(*)::text FROM orders
-ORDER BY item;
+-- Display summary
+DO $$
+BEGIN
+  RAISE NOTICE '✅ Seed data created successfully!';
+  RAISE NOTICE '';
+  RAISE NOTICE 'Summary:';
+  RAISE NOTICE '  - Brands: %', (SELECT COUNT(*) FROM brands);
+  RAISE NOTICE '  - Stores: %', (SELECT COUNT(*) FROM stores);
+  RAISE NOTICE '  - Staff: %', (SELECT COUNT(*) FROM staff);
+  RAISE NOTICE '  - Customers: %', (SELECT COUNT(*) FROM customers);
+  RAISE NOTICE '  - Menu Categories: %', (SELECT COUNT(*) FROM menu_categories);
+  RAISE NOTICE '  - Menu Items: %', (SELECT COUNT(*) FROM menu_items);
+  RAISE NOTICE '  - Menu Modifiers: %', (SELECT COUNT(*) FROM menu_modifiers);
+  RAISE NOTICE '  - Inventory: %', (SELECT COUNT(*) FROM inventory);
+  RAISE NOTICE '  - Pickup Slots: %', (SELECT COUNT(*) FROM pickup_slots);
+  RAISE NOTICE '  - App Configs: %', (SELECT COUNT(*) FROM app_configs);
+  RAISE NOTICE '  - Promotions: %', (SELECT COUNT(*) FROM promotions);
+  RAISE NOTICE '  - Coupons: %', (SELECT COUNT(*) FROM coupons);
+  RAISE NOTICE '  - Orders: %', (SELECT COUNT(*) FROM orders);
+  RAISE NOTICE '';
+  RAISE NOTICE '⚠️  Note: Staff and Customer user_ids are placeholders.';
+  RAISE NOTICE '   Create actual users via Supabase Auth and update these records.';
+END $$;
 
--- Success message
-SELECT '✅ Complete database setup finished!' as status;
