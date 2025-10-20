@@ -6,7 +6,7 @@
 -- ============================================================================
 
 CREATE TABLE pickup_slots (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
 
     -- Day of week (0 = Sunday, 6 = Saturday)
@@ -42,7 +42,7 @@ COMMENT ON COLUMN pickup_slots.lead_time_minutes IS 'Minimum time between order 
 -- ============================================================================
 
 CREATE TABLE pickup_reservations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
     customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
     pickup_time TIMESTAMPTZ NOT NULL,

@@ -16,7 +16,7 @@ CREATE TYPE build_status AS ENUM ('in_progress', 'completed', 'failed');
 -- ============================================================================
 
 CREATE TABLE app_configs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE UNIQUE,
 
     -- App branding
@@ -54,7 +54,7 @@ COMMENT ON COLUMN app_configs.primary_color IS 'Brand primary color (hex format)
 -- ============================================================================
 
 CREATE TABLE app_builds (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     app_config_id UUID NOT NULL REFERENCES app_configs(id) ON DELETE CASCADE,
     platform build_platform NOT NULL,
     status build_status NOT NULL DEFAULT 'in_progress',

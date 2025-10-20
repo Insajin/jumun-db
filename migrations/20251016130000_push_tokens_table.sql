@@ -6,7 +6,7 @@
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS push_tokens (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
     token TEXT NOT NULL,
     platform TEXT NOT NULL CHECK (platform IN ('ios', 'android', 'web')),

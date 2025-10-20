@@ -1,17 +1,17 @@
 -- Enable required PostgreSQL extensions
 -- Migration: 20250101000001_enable_extensions
 
--- UUID generation
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- UUID generation (install in extensions schema for Supabase compatibility)
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
 
 -- Cryptographic functions
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA extensions;
 
 -- Full-text search
-CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm" WITH SCHEMA extensions;
 
 -- PostGIS (for location-based features)
-CREATE EXTENSION IF NOT EXISTS "postgis";
+CREATE EXTENSION IF NOT EXISTS "postgis" WITH SCHEMA extensions;
 
 -- Comments
 COMMENT ON EXTENSION "uuid-ossp" IS 'UUID generation functions';

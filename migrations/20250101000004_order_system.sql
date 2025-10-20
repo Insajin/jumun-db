@@ -57,7 +57,7 @@ CREATE TYPE refund_status AS ENUM (
 -- ============================================================================
 
 CREATE TABLE orders (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
     store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
     customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
@@ -121,7 +121,7 @@ COMMENT ON COLUMN orders.payment_metadata IS 'Payment gateway metadata (JSONB)';
 -- ============================================================================
 
 CREATE TABLE order_status_history (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
     from_status order_status,
     to_status order_status NOT NULL,
@@ -141,7 +141,7 @@ COMMENT ON COLUMN order_status_history.changed_by IS 'User who changed the statu
 -- ============================================================================
 
 CREATE TABLE refunds (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
     amount DECIMAL(10,2) NOT NULL,
     reason cancellation_reason NOT NULL,

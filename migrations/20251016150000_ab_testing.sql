@@ -5,7 +5,7 @@
 -- AB_TESTS TABLE
 -- ============================================================================
 CREATE TABLE ab_tests (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
 
     -- Test metadata
@@ -52,7 +52,7 @@ COMMENT ON COLUMN ab_tests.confidence_threshold IS 'Minimum confidence level to 
 -- AB_TEST_VARIANTS TABLE
 -- ============================================================================
 CREATE TABLE ab_test_variants (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     test_id UUID NOT NULL REFERENCES ab_tests(id) ON DELETE CASCADE,
 
     -- Variant info
@@ -82,7 +82,7 @@ COMMENT ON TABLE ab_test_variants IS 'A/B test variant configurations (links to 
 -- AB_TEST_EXPOSURES TABLE
 -- ============================================================================
 CREATE TABLE ab_test_exposures (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     test_id UUID NOT NULL REFERENCES ab_tests(id) ON DELETE CASCADE,
     customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
 
@@ -105,7 +105,7 @@ COMMENT ON TABLE ab_test_exposures IS 'Records which variant each customer saw';
 -- AB_TEST_CONVERSIONS TABLE
 -- ============================================================================
 CREATE TABLE ab_test_conversions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     test_id UUID NOT NULL REFERENCES ab_tests(id) ON DELETE CASCADE,
     exposure_id UUID NOT NULL REFERENCES ab_test_exposures(id) ON DELETE CASCADE,
     customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,

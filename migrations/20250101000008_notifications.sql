@@ -26,7 +26,7 @@ CREATE TYPE notification_status AS ENUM (
 -- ============================================================================
 
 CREATE TABLE notification_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
     order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
     type notification_type NOT NULL,

@@ -50,7 +50,7 @@ Example loyalty settings:
 -- ============================================================================
 
 CREATE TABLE stamp_cards (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
     brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
     stamps_earned INTEGER NOT NULL DEFAULT 0,

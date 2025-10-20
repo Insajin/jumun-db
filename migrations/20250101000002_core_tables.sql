@@ -22,7 +22,7 @@ CREATE TYPE staff_role AS ENUM ('store_staff', 'store_manager', 'brand_admin', '
 -- ============================================================================
 
 CREATE TABLE brands (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     slug TEXT NOT NULL UNIQUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -42,7 +42,7 @@ COMMENT ON COLUMN brands.slug IS 'URL-safe brand identifier';
 -- ============================================================================
 
 CREATE TABLE subscriptions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
     plan subscription_plan NOT NULL DEFAULT 'trial',
     status subscription_status NOT NULL DEFAULT 'active',
@@ -68,7 +68,7 @@ COMMENT ON COLUMN subscriptions.expires_at IS 'Subscription expiration date';
 -- ============================================================================
 
 CREATE TABLE stores (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     slug TEXT NOT NULL,
@@ -102,7 +102,7 @@ CREATE TABLE stores (
 
 CREATE INDEX idx_stores_brand_id ON stores(brand_id);
 CREATE INDEX idx_stores_status ON stores(status);
-CREATE INDEX idx_stores_location ON stores USING GIST(ST_MakePoint(lng, lat)) WHERE lat IS NOT NULL AND lng IS NOT NULL;
+CREATE INDEX idx_stores_location ON stores USING GIST(extensions.ST_MakePoint(lng, lat)) WHERE lat IS NOT NULL AND lng IS NOT NULL;
 CREATE INDEX idx_stores_last_heartbeat ON stores(last_heartbeat_at) WHERE status != 'offline';
 
 COMMENT ON TABLE stores IS 'Individual store locations';
@@ -115,7 +115,7 @@ COMMENT ON COLUMN stores.last_heartbeat_at IS 'Last ping from store dashboard (f
 -- ============================================================================
 
 CREATE TABLE staff (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     role staff_role NOT NULL DEFAULT 'store_staff',
@@ -143,7 +143,7 @@ COMMENT ON COLUMN staff.permissions IS 'Fine-grained permissions (JSONB)';
 -- ============================================================================
 
 CREATE TABLE customers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
     phone TEXT,
     phone_verified_at TIMESTAMPTZ,

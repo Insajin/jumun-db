@@ -13,7 +13,7 @@ CREATE TYPE modifier_type AS ENUM ('single', 'multiple');
 -- ============================================================================
 
 CREATE TABLE menu_categories (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
     store_id UUID REFERENCES stores(id) ON DELETE CASCADE,  -- NULL = brand-level category
     parent_id UUID REFERENCES menu_categories(id) ON DELETE CASCADE,  -- For hierarchical categories
@@ -44,7 +44,7 @@ COMMENT ON COLUMN menu_categories.parent_id IS 'For nested categories (e.g., Cof
 -- ============================================================================
 
 CREATE TABLE menu_items (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
     store_id UUID REFERENCES stores(id) ON DELETE CASCADE,  -- NULL = brand-level item
     category_id UUID REFERENCES menu_categories(id) ON DELETE SET NULL,
@@ -77,7 +77,7 @@ COMMENT ON COLUMN menu_items.inventory_tracked IS 'If true, check inventory tabl
 -- ============================================================================
 
 CREATE TABLE menu_modifiers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     item_id UUID NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     type modifier_type NOT NULL DEFAULT 'single',
@@ -112,7 +112,7 @@ COMMENT ON COLUMN menu_modifiers.options IS 'JSONB array of {name, price} object
 -- ============================================================================
 
 CREATE TABLE inventory (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
     item_id UUID NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
     quantity INTEGER NOT NULL DEFAULT 0,

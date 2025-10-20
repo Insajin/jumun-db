@@ -19,100 +19,74 @@
 2. 왼쪽 메뉴에서 **SQL Editor** 클릭
 3. **New Query** 버튼 클릭
 
-### 2단계: SQL 스크립트 실행
+### 2단계: 스키마 동기화 (필수)
 
-**추천: `init-cloud-db-complete.sql` 사용** ⭐⭐⭐
+1. `jumun-db/init-cloud-db.sql` 파일을 엽니다.
+2. 전체 내용을 복사하여 SQL Editor에 붙여넣습니다.
+3. **Run** (또는 `Cmd+Enter`)로 실행합니다.
 
-이 스크립트는 모든 테이블 + 실제 테스트 가능한 완전한 시드 데이터를 포함합니다.
+> ℹ️ `init-cloud-db.sql`은 `supabase/migrations` 폴더를 순서대로 이어 붙여 자동 생성됩니다.  
+> 로컬 Supabase CLI에서 사용하는 스키마와 100% 동일합니다.
 
-1. `supabase/init-cloud-db-complete.sql` 파일 열기
-2. 전체 내용 복사 (Cmd+A, Cmd+C)
-3. SQL Editor에 붙여넣기 (Cmd+V)
-4. **Run** 버튼 클릭 (또는 Cmd+Enter)
+### 3단계: 샘플 데이터 선택 (선택)
 
-**대안: 기본 설정만 필요한 경우**
-- `init-cloud-db-simple.sql` - 브랜드와 앱 설정만 생성
+- `jumun-db/init-cloud-db-simple.sql`  
+  : 최소한의 브랜드/스토어/앱 설정을 채웁니다. 빠른 연동 테스트용.
+- `jumun-db/init-cloud-db-complete.sql`  
+  : 로컬 `seed/seed.sql`과 동일한 풀 샘플 데이터를 추가합니다. 실행 전 테이블을 `TRUNCATE`하므로 초기화 용도로 사용하세요.
 
-### 3단계: 실행 확인
+사용 방법은 스키마 스크립트와 동일합니다. 필요한 스크립트를 열어 복사 → 붙여넣기 → 실행하면 됩니다.
 
-스크립트가 성공적으로 실행되면 하단에 결과가 표시됩니다:
+### 4단계: 실행 확인
 
-**Complete 스크립트 실행 시:**
-```
-| section | item             | count |
-|---------|------------------|-------|
-| Summary | App Configs      | 4     |
-| Summary | Brands           | 4     |
-| Summary | Customers        | 3     |
-| Summary | Menu Categories  | 7     |
-| Summary | Menu Items       | 16    |
-| Summary | Menu Modifiers   | 5     |
-| Summary | Orders           | 2     |
-| Summary | Stores           | 5     |
+아래 쿼리로 주요 테이블이 생성/채워졌는지 확인하세요:
 
-✅ Complete database setup finished!
+```sql
+SELECT COUNT(*) AS brands     FROM brands;
+SELECT COUNT(*) AS stores     FROM stores;
+SELECT COUNT(*) AS menu_items FROM menu_items;
+SELECT COUNT(*) AS customers  FROM customers;
 ```
 
-**Simple 스크립트 실행 시:**
-```
-| table_name    | row_count |
-|---------------|-----------|
-| Brands        | 4         |
-| App Configs   | 4         |
-| Subscriptions | 4         |
-```
-
-✅ 데이터베이스 설정 완료!
+`init-cloud-db-complete.sql` 실행 후에는 브랜드 2개, 매장 3곳, 메뉴 아이템 12개, 고객 2명이 반환됩니다.
 
 ---
 
 ## 📊 생성된 테이블
 
-### 핵심 테이블
-- **brands** - 브랜드/테넌트 정보
-- **app_configs** - 브랜드별 화이트 라벨 앱 설정
-- **app_builds** - 앱 빌드 히스토리
-- **stores** - 매장 정보
-- **staff** - 직원 정보
-- **customers** - 고객 정보
-- **subscriptions** - 구독 플랜
+### 핵심 도메인
+- **brands / subscriptions / stores / staff / customers**  
+  멀티 테넌트 구조, 스토어별 직원/고객 관리, 브랜드별 RLS 정책 적용
+- **menu_categories / menu_items / menu_modifiers / inventory**  
+  브랜드·스토어 단위 메뉴 구성과 옵션, 재고 관리
+- **orders / order_status_history / refunds / pickup_slots / pickup_reservations**  
+  주문 흐름(결제·픽업·취소) 및 예약 슬롯 관리
+- **app_configs / app_builds**  
+  화이트 라벨 앱 설정 및 빌드 추적
+- **promotions / coupons / loyalty_transactions / stamp_cards**  
+  프로모션, 쿠폰, 포인트·스탬프 적립 로직
+- **notifications / notification_templates / push_tokens / promotion_banners / customer_segments**  
+  마케팅·푸시 알림 채널
+- **ab_tests / ab_test_variants / ab_test_exposures / ab_test_conversions**  
+  실험/AB 테스트 관리용 테이블
 
-### 기본 시드 데이터
+### 기본 시드 데이터 (`init-cloud-db-complete.sql`)
 
-#### 브랜드 (4개)
-- **Jumun** - 기본 브랜드 (#6366F1 인디고)
-- **스타벅스** - 프로페셔널 플랜 (#00704A 그린)
-- **투썸플레이스** - 베이직 플랜 (#E94B3C 레드)
-- **메가커피** - 트라이얼 플랜 (#FFB81C 옐로우)
-
-#### 매장 (5개)
-- Jumun 테스트 매장 (강남)
-- 스타벅스 강남점, 홍대점
-- 투썸플레이스 역삼점
-- 메가커피 신촌점
-
-#### 메뉴 (16개 메뉴 아이템)
-**스타벅스:**
-- 커피: 아메리카노, 카페 라떼, 카푸치노, 카라멜 마키아또
-- 논커피: 자몽 허니 블랙 티, 딸기 요거트 블렌디드
-- 푸드: 뉴욕 치즈케이크, BLT 샌드위치
-
-**투썸플레이스:**
-- 커피: 아메리카노, 카페 라떼
-- 케이크: 티라미수, 초코 생크림
-
-**메가커피:**
-- 커피: 메가 아메리카노, 메가 라떼
-- 에이드: 레몬, 자몽
-
-#### 고객 (3명)
-- 김테스트 (1,000 포인트)
-- 이고객 (500 포인트)
-- 박주문 (2,500 포인트)
-
-#### 샘플 주문 (2건)
-- 완료된 주문: 스타벅스 아메리카노 x2
-- 진행 중인 주문: 카페 라떼 + 치즈케이크
+- **브랜드 2개**  
+  - Coffee & Co (인디고 테마)  
+  - Burger House (레드 테마)
+- **매장 3곳**  
+  - Coffee & Co Gangnam / Hongdae  
+  - Burger House Itaewon
+- **고객 2명**  
+  - Coffee & Co 전용 고객 1명  
+  - Burger House 전용 고객 1명
+- **메뉴/옵션**  
+  - 커피 브랜드용 대분류·소분류 5개, 음료/디저트 8개, 옵션 3세트  
+  - 버거 브랜드용 카테고리 3개, 메뉴 5개, 옵션 1세트
+- **주문 샘플 2건**  
+  - 완료된 커피 주문 1건, 진행 중인 버거 주문 1건
+- **앱 설정 2개 + 프로모션/쿠폰 샘플 데이터**
 
 ---
 
@@ -157,7 +131,7 @@ JOIN brands b ON ac.brand_id = b.id;
 4. 브랜드 목록이 로딩되는지 확인
 
 **예상 결과:**
-- ✅ 4개 브랜드 표시 (Jumun, 스타벅스, 투썸플레이스, 메가커피)
+- ✅ 2개 브랜드 표시 (Coffee & Co, Burger House)
 - ✅ 브랜드 선택 시 테마 색상 변경
 - ✅ 브랜드 이름이 앱 타이틀에 표시
 
@@ -165,18 +139,18 @@ JOIN brands b ON ac.brand_id = b.id;
 
 SQL Editor에서 실행:
 ```sql
--- 스타벅스 매장 조회
+-- Coffee & Co 매장 조회
 SELECT name, address, phone FROM stores
-WHERE brand_id = '00000000-0000-0000-0000-000000000002';
+WHERE brand_id = '11111111-1111-1111-1111-111111111111';
 
--- 스타벅스 메뉴 조회
+-- Coffee & Co 메뉴 조회
 SELECT
     mc.name as category,
     mi.name as item,
     mi.price
 FROM menu_items mi
 JOIN menu_categories mc ON mi.category_id = mc.id
-WHERE mi.brand_id = '00000000-0000-0000-0000-000000000002'
+WHERE mi.brand_id = '11111111-1111-1111-1111-111111111111'
 ORDER BY mc.display_order, mi.display_order;
 
 -- 주문 내역 조회
@@ -192,6 +166,27 @@ JOIN brands b ON o.brand_id = b.id
 JOIN stores s ON o.store_id = s.id
 ORDER BY o.created_at DESC;
 ```
+
+---
+
+## 🔁 로컬 ↔ 클라우드 동기화
+
+1. **로컬 동기화**
+   ```bash
+   supabase start          # 로컬 스택 실행
+   supabase db reset       # (옵션) 전체 초기화 후 마이그레이션 적용
+   ```
+2. **클라우드에 최신 마이그레이션 반영**
+   ```bash
+   supabase link --project-ref <project-id>
+   supabase db push        # supabase/migrations 를 그대로 업로드
+   ```
+3. **SQL 스크립트 재생성**
+   ```bash
+   ./scripts/generate-cloud-sql.sh
+   ```
+   위 스크립트는 `supabase/migrations`를 읽어 `init-cloud-db*.sql` 세 파일을 다시 만듭니다.  
+   로컬/클라우드 스키마가 항상 동일하도록 변경 사항을 반영한 뒤 커밋하세요.
 
 ---
 

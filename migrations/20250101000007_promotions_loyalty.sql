@@ -25,7 +25,7 @@ CREATE TYPE coupon_type AS ENUM (
 -- ============================================================================
 
 CREATE TABLE promotions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
 
     -- Targeting
@@ -66,7 +66,7 @@ COMMENT ON COLUMN promotions.conditions IS 'Promotion conditions (JSONB)';
 -- ============================================================================
 
 CREATE TABLE coupons (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
     customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,  -- NULL = public coupon
     code TEXT NOT NULL,
@@ -97,7 +97,7 @@ COMMENT ON COLUMN coupons.customer_id IS 'NULL for public coupons, UUID for cust
 -- ============================================================================
 
 CREATE TABLE loyalty_transactions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
     order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
     points_earned INTEGER NOT NULL DEFAULT 0,

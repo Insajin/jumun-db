@@ -13,7 +13,7 @@
 -- ============================================================================
 
 CREATE TABLE promotion_banners (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
 
     -- Banner content
@@ -77,7 +77,7 @@ COMMENT ON COLUMN coupons.issued_by IS 'Admin user who created this coupon';
 
 -- Coupon templates for bulk issuance
 CREATE TABLE coupon_templates (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
 
     -- Template details
@@ -123,7 +123,7 @@ ALTER TABLE coupon_templates ENABLE ROW LEVEL SECURITY;
 CREATE TYPE segment_type AS ENUM ('auto', 'manual');
 
 CREATE TABLE customer_segments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
 
     -- Segment details
@@ -181,7 +181,7 @@ CREATE TYPE notification_target AS ENUM ('all', 'segment', 'individual');
 CREATE TYPE notification_campaign_status AS ENUM ('draft', 'scheduled', 'sending', 'sent', 'failed');
 
 CREATE TABLE notifications (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
 
     -- Notification content
@@ -235,7 +235,7 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
 -- Notification templates
 CREATE TABLE notification_templates (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
 
     -- Template details
@@ -268,7 +268,7 @@ CREATE TYPE recommendation_mode AS ENUM ('auto', 'manual', 'time_based');
 CREATE TYPE auto_criteria AS ENUM ('popular', 'new', 'seasonal', 'random');
 
 CREATE TABLE recommended_menu_configs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
 
     -- Configuration
@@ -331,7 +331,7 @@ COMMENT ON COLUMN menu_items.display_on_home IS 'Display in home screen recommen
 
 -- Menu scheduling
 CREATE TABLE menu_schedules (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     menu_item_id UUID NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
 
     -- Time availability (JSONB)
@@ -369,7 +369,7 @@ ALTER TABLE menu_schedules ENABLE ROW LEVEL SECURITY;
 
 -- Track banner interactions
 CREATE TABLE banner_interactions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     banner_id UUID NOT NULL REFERENCES promotion_banners(id) ON DELETE CASCADE,
     customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
 
