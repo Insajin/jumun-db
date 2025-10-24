@@ -298,6 +298,7 @@ Private - All Rights Reserved
 - `migrations/20251024000001_popular_menu_items_view.sql` - Materialized view for popular items
 - `seed/home_promotion_banners.sql` - Carousel banner seed data
 - `seed/home_menu_items.sql` - Menu item seed data
+- `seed/home_app_config.sql` - App configuration with OOZY COFFEE branding
 
 **Deployment Steps:**
 
@@ -315,6 +316,9 @@ Private - All Rights Reserved
    ```bash
    # Connect to your database
    psql "postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres"
+
+   # Insert app configuration
+   \i seed/home_app_config.sql
 
    # Insert promotion banners
    \i seed/home_promotion_banners.sql
