@@ -282,4 +282,120 @@ Private - All Rights Reserved
 
 ---
 
-**Last Updated**: 2025-10-15
+## 🆕 Recent Updates
+
+### 2025-10-24: Home Page Real Data Migration
+
+**Overview**: Migrated customer-web home page from mock data to real Supabase data with materialized views for performance.
+
+**What Changed:**
+- Created `popular_menu_items` materialized view for efficient popular item ranking
+- Added seed data for promotion banners and menu items
+- Updated frontend to fetch data from Supabase with loading/error states
+- Removed mock data files
+
+**New Files:**
+- `migrations/20251024000001_popular_menu_items_view.sql` - Materialized view for popular items
+- `seed/home_promotion_banners.sql` - Carousel banner seed data
+- `seed/home_menu_items.sql` - Menu item seed data
+
+**Deployment Steps:**
+
+1. **Apply Migration** (Create materialized view):
+   ```bash
+   # Using Supabase CLI
+   supabase db push
+
+   # Or manually via psql
+   psql "postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres" \
+     -f migrations/20251024000001_popular_menu_items_view.sql
+   ```
+
+2. **Run Seed Data**:
+   ```bash
+   # Connect to your database
+   psql "postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres"
+
+   # Insert promotion banners
+   \i seed/home_promotion_banners.sql
+
+   # Insert menu items
+   \i seed/home_menu_items.sql
+   ```
+
+3. **Refresh Materialized View**:
+   ```bash
+   # In psql or Supabase SQL Editor
+   SELECT refresh_popular_menu_items();
+   ```
+
+4. **Set Up Periodic Refresh** (Recommended - every hour):
+
+   **Option A: Edge Function + Cron**
+   ```typescript
+   // Create edge function: functions/refresh-popular-items/index.ts
+   import { createClient } from '@supabase/supabase-js'
+
+   Deno.serve(async (req) => {
+     const supabase = createClient(
+       Deno.env.get('SUPABASE_URL')!,
+       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+     )
+
+     const { error } = await supabase.rpc('refresh_popular_menu_items')
+
+     return new Response(
+       JSON.stringify(error ? { error: error.message } : { success: true }),
+       { headers: { 'Content-Type': 'application/json' } }
+     )
+   })
+   ```
+   Then add cron: `0 * * * *` (hourly)
+
+   **Option B: pg_cron**
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+   SELECT cron.schedule(
+     'refresh-popular-items',
+     '0 * * * *',
+     $$SELECT refresh_popular_menu_items();$$
+   );
+   ```
+
+**Verification:**
+
+```sql
+-- Check materialized view has data
+SELECT brand_id, COUNT(*) as items
+FROM popular_menu_items
+GROUP BY brand_id;
+
+-- View top 4 popular items for coffee-and-co
+SELECT mi.name, mi.price, mi.order_count, mi.popularity_rank
+FROM popular_menu_items mi
+JOIN brands b ON b.id = mi.brand_id
+WHERE b.slug = 'coffee-and-co'
+  AND mi.popularity_rank <= 4
+ORDER BY mi.popularity_rank;
+
+-- Check promotion banners
+SELECT title, active, display_order
+FROM promotion_banners pb
+JOIN brands b ON b.id = pb.brand_id
+WHERE b.slug = 'coffee-and-co';
+```
+
+**Frontend Changes:**
+- `jumun-web/apps/customer-web/lib/services/home.ts` - New data fetching service
+- `jumun-web/apps/customer-web/app/[brandSlug]/page.tsx` - Updated to use real data
+- Removed: `lib/mock-data/home.ts`
+
+**Performance Notes:**
+- Materialized view pre-calculates rankings for fast queries
+- Fallback to recent items if view is empty (new brands)
+- Only items with images are displayed (type-safe)
+
+---
+
+**Last Updated**: 2025-10-24
